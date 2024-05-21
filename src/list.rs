@@ -35,12 +35,24 @@ impl CustomList {
                 command: "sleep 2 && eza -la"
             },
             ListNode {
+                name: "Just ls, nothing special, trust me",
+                command: include_str!("commands/special_ls.sh"),
+            },
+            ListNode {
                 name: "Test Category",
                 command: ""
             } => {
                 ListNode {
                     name: "sleep, eza, sleep, eza",
                     command: "sleep 1 && eza -la && sleep 1 && eza -la && echo Bonus eza comming... && sleep 1 && eza -la"
+                },
+                ListNode {
+                    name: "Just open neovim :), because I can",
+                    command: "nvim"
+                },
+                ListNode {
+                    name: "Recursion?",
+                    command: "cargo run"
                 },
             },
         });
