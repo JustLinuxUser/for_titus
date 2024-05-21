@@ -5,6 +5,7 @@ use ego_tree::{tree, NodeId};
 use ratatui::{
     layout::Rect,
     style::{Style, Stylize},
+    text::Line,
     widgets::{Block, Borders, List, ListState},
     Frame,
 };
@@ -72,13 +73,13 @@ impl CustomList {
         let mut items = vec![];
 
         if !self.at_root() {
-            items.push("  ..".to_string());
+            items.push(Line::from("  ..").blue());
         }
         for node in curr.children() {
             if node.has_children() {
-                items.push(format!("  {}", node.value().name));
+                items.push(Line::from(format!("  {}", node.value().name)).blue());
             } else {
-                items.push(format!("  {}", node.value().name));
+                items.push(Line::from(format!("  {}", node.value().name)).red());
             }
         }
 
