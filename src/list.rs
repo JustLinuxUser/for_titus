@@ -1,6 +1,4 @@
-use std::ops::Add;
-
-use crossterm::event::{KeyCode, KeyEvent};
+use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 use ego_tree::{tree, NodeId};
 use ratatui::{
     layout::Rect,
@@ -15,14 +13,25 @@ struct ListNode {
     command: &'static str,
 }
 
+/// This is a data structure that has everything necessary to draw and manage a menu of commands
 pub struct CustomList {
+    /// The tree data structure, to represent regular items
+    /// and "directories"
     inner_tree: ego_tree::Tree<ListNode>,
+    /// This stack keeps track of our "current dirrectory". You can think of it as `pwd`. but not
+    /// just the current directory, all paths that took us here, so we can "cd .."
     visit_stack: Vec<NodeId>,
+    /// This is the state asociated with the list widget, used to display the selection in the
+    /// widget
     list_state: ListState,
 }
 
 impl CustomList {
+    /// It's really easy to make this accept a tree, and make it reusable, but rn its only called
+    /// once, so I didn't bother, and it gets initialized here
     pub fn new() -> Self {
+        // When a function call ends with an exclamation mark, it means it's a macro, like in this
+        // case the tree! macro expands to `ego-tree::tree` data structure
         let tree = tree!(ListNode {
             name: "root",
             command: ""
@@ -57,6 +66,8 @@ impl CustomList {
                 },
             },
         });
+        // We don't get a reference, but rather an id, because references are siginficantly more
+        // paintfull to manage
         let root_id = tree.root().id();
         Self {
             inner_tree: tree,
@@ -65,17 +76,25 @@ impl CustomList {
         }
     }
 
+    /// Draw our custom widget to the frame
     pub fn draw(&mut self, frame: &mut Frame, area: Rect) {
+        // Get the last element in the `visit_stack` vec
         let curr = self
             .inner_tree
             .get(*self.visit_stack.last().unwrap())
             .unwrap();
         let mut items = vec![];
 
+        // If we are not at the root of our filesystem tree, we need to add `..` path, to be able
+        // to go up the tree
         if !self.at_root() {
             items.push(Line::from("  ..").blue());
         }
+
+        // Iterate through all the children
         for node in curr.children() {
+            // The difference between a "directory" and a "command" is simple: if it has children,
+            // it's a directory and will be handled as such
             if node.has_children() {
                 items.push(Line::from(format!("  {}", node.value().name)).blue());
             } else {
@@ -83,69 +102,87 @@ impl CustomList {
             }
         }
 
+        // create the normal list widget containing only item in our "working directory" / tree
+        // node
         let list = List::new(items)
             .highlight_symbol(">>> ")
             .highlight_style(Style::default().reversed())
             .block(Block::default().borders(Borders::ALL).title("List"));
 
+        // Render it
         frame.render_stateful_widget(list, area, &mut self.list_state);
     }
 
+    /// Handle key events, we are only interested in `Press` and `Repeat` events
     pub fn handle_key(&mut self, event: KeyEvent) -> Option<&'static str> {
+        if event.kind == KeyEventKind::Release {
+            return None;
+        }
         match event.code {
+            // Damm you Up arrow, use vim lol
             KeyCode::Char('j') | KeyCode::Down => {
-                self.handle_key_down();
+                self.try_scroll_down();
                 None
             }
             KeyCode::Char('k') | KeyCode::Up => {
-                self.handle_key_up();
+                self.try_scroll_up();
                 None
             }
             KeyCode::Enter => self.handle_enter(),
             _ => None,
         }
     }
-    fn handle_key_up(&mut self) {
+    fn try_scroll_up(&mut self) {
         self.list_state
             .select(Some(self.list_state.selected().unwrap().saturating_sub(1)));
     }
-    fn handle_key_down(&mut self) {
+    fn try_scroll_down(&mut self) {
         let curr = self
             .inner_tree
             .get(*self.visit_stack.last().unwrap())
             .unwrap();
 
-        let count = if self.at_root() {
-            // the .. does not exist, when there is
-            // nowhere to go up
-            curr.children().count() - 1
+        let count = curr.children().count();
+
+        let curr_selection = self.list_state.selected().unwrap();
+        if self.at_root() {
+            self.list_state
+                .select(Some((curr_selection + 1).min(count - 1)));
         } else {
-            curr.children().count()
-        };
-        self.list_state
-            .select(Some(self.list_state.selected().unwrap().add(1).min(count)));
+            // When we are not at the root, we have to account for 1 more "virtual" node, `..`. So
+            // the count is 1 bigger (select is 0 based, because it's an index)
+            self.list_state
+                .select(Some((curr_selection + 1).min(count)));
+        }
     }
 
-    fn at_root(&self) -> bool {
-        self.visit_stack.len() == 1
-    }
-
+    /// Handles the <Enter> key. This key can do 3 things:
+    /// - Run a command, if it is the currently selected item,
+    /// - Go up a directory
+    /// - Go down into a directory
+    /// Returns `Some(command)` when command is selected, othervise we returns `None`
     fn handle_enter(&mut self) -> Option<&'static str> {
+        // Get the current node (current directory)
         let curr = self
             .inner_tree
             .get(*self.visit_stack.last().unwrap())
             .unwrap();
-        let mut selected = self.list_state.selected().unwrap();
+        let selected = self.list_state.selected().unwrap();
+
+        // if we are not at the root, and the first element is selected,
+        // we can be sure it's '..', so we go up the directory
         if !self.at_root() && selected == 0 {
             self.visit_stack.pop();
             self.list_state.select(Some(0));
             return None;
         }
 
-        if !self.at_root() {
-            selected -= 1; // we need to account for ..
-        }
-        for (idx, node) in curr.children().enumerate() {
+        for (mut idx, node) in curr.children().enumerate() {
+            // at this point, we know that we are not on the .. item, and our indexes of the items never had ..
+            // item. so to balance it out, in case the selection index contains .., se add 1 to our node index
+            if !self.at_root() {
+                idx += 1;
+            }
             if idx == selected {
                 if node.has_children() {
                     self.visit_stack.push(node.id());
@@ -157,5 +194,12 @@ impl CustomList {
             }
         }
         None
+    }
+
+    /// Checks weather the current tree node is the root node (can we go up the tree or no)
+    /// Returns `true` if we can't go up the tree (we are at the tree root)
+    /// else returns `false`
+    fn at_root(&self) -> bool {
+        self.visit_stack.len() == 1
     }
 }

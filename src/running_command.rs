@@ -154,36 +154,36 @@ impl RunningCommand {
             let floater = floating_window(frame.size());
 
             let inner_size = Size {
-                width: floater.width - 2, // Because we add a block (border)
+                width: floater.width - 2, // Because we add a `Block` with a border
                 height: floater.height - 2,
             };
-            let screen = self.screen(inner_size);
-            let bottom_line = if !self.is_finished() {
-                Line::from("Press Ctrl-C to KILL the command")
-            } else {
-                Line::default()
-            };
+
+            // When the command is running
             let term_border = if !self.is_finished() {
                 Block::default()
                     .borders(Borders::ALL)
                     .title_top(Line::from("Running the command....").centered())
                     .title_style(Style::default().reversed())
-                    .title_bottom(bottom_line)
+                    .title_bottom(Line::from("Press Ctrl-C to KILL the command"))
             } else {
-                let mut title_line = Line::default();
-                if self.get_exit_status().success() {
-                    title_line.push_span(
+                // This portion is just for pretty colors.
+                // You can use multiple `Span`s with different styles each, to construct a line,
+                // which can be used as a list item, or in this case a `Block` title
+
+                let mut title_line = if self.get_exit_status().success() {
+                    Line::from(
                         Span::default()
                             .content("SUCCESS!")
                             .style(Style::default().green().reversed()),
-                    );
+                    )
                 } else {
-                    title_line.push_span(
+                    Line::from(
                         Span::default()
                             .content("FAILED!")
                             .style(Style::default().red().reversed()),
-                    );
-                }
+                    )
+                };
+
                 title_line.push_span(
                     Span::default()
                         .content(" press <ENTER> to close this window ")
@@ -193,12 +193,15 @@ impl RunningCommand {
                 Block::default()
                     .borders(Borders::ALL)
                     .title_top(title_line.centered())
-                    .title_bottom(bottom_line)
             };
+            let screen = self.screen(inner_size); // when the terminal is changing a lot, there
+                                                  // will be 1 frame of lag on resizing
             let pseudo_term = PseudoTerminal::new(&screen).block(term_border);
             frame.render_widget(pseudo_term, floater);
         }
     }
+    /// From what I observed this sends SIGHUB signal, *not* SIGKILL or SIGTERM, so the process
+    /// doesn't get a chance to clean up. If neccesary, I can look into sending SIGTERM directly
     pub fn kill_child(&mut self) {
         if !self.is_finished() {
             let mut killer = self.child_killer.take().unwrap().recv().unwrap();
