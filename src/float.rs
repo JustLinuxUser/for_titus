@@ -5,7 +5,7 @@ use ratatui::layout::{Constraint, Direction, Layout, Rect};
 /// very easy to calculate it directly, but I chose to use the ratatui API
 pub fn floating_window(size: Rect) -> Rect {
     // If the terminal window is small enough, just take up all the space for the command
-    if size.width < 50 || size.height < 25 {
+    if size.width < 85 || size.height < 25 {
         return size;
     }
     let hor_float = Layout::default()
@@ -30,7 +30,7 @@ pub fn floating_window(size: Rect) -> Rect {
 /// But it might break on smaller numbers
 fn _unused_manual_floating_window(size: Rect) -> Rect {
     // If the terminal window is small enough, just take up all the space for the command
-    if size.width < 50 || size.height < 25 {
+    if size.width < 85 || size.height < 25 {
         return size;
     }
     let new_width = size.width * 60 / 100;
