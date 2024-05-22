@@ -9,7 +9,7 @@ use portable_pty::{
 };
 use ratatui::{
     layout::Size,
-    style::{Style, Stylize},
+    style::{Color, Style, Styled, Stylize},
     text::{Line, Span},
     widgets::{Block, Borders},
     Frame,
@@ -174,13 +174,13 @@ impl RunningCommand {
                     Line::from(
                         Span::default()
                             .content("SUCCESS!")
-                            .style(Style::default().green().reversed()),
+                            .style(Style::default().fg(Color::Rgb(5, 255, 55)).reversed()),
                     )
                 } else {
                     Line::from(
                         Span::default()
                             .content("FAILED!")
-                            .style(Style::default().red().reversed()),
+                            .style(Style::default().fg(Color::Rgb(199, 55, 44)).reversed()),
                     )
                 };
 

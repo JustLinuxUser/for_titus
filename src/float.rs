@@ -4,6 +4,10 @@ use ratatui::layout::{Constraint, Direction, Layout, Rect};
 /// "floating window". And you don't actually need all the constraints, and layouts to do that, its
 /// very easy to calculate it directly, but I chose to use the ratatui API
 pub fn floating_window(size: Rect) -> Rect {
+    // If the terminal window is small enough, just take up all the space for the command
+    if size.width < 50 || size.height < 25 {
+        return size;
+    }
     let hor_float = Layout::default()
         .constraints([
             Constraint::Percentage(20),
@@ -25,6 +29,10 @@ pub fn floating_window(size: Rect) -> Rect {
 /// Here is how would a purely math based function look like:
 /// But it might break on smaller numbers
 fn _unused_manual_floating_window(size: Rect) -> Rect {
+    // If the terminal window is small enough, just take up all the space for the command
+    if size.width < 50 || size.height < 25 {
+        return size;
+    }
     let new_width = size.width * 60 / 100;
     let new_height = size.height * 60 / 100;
     let new_x = size.x + size.width * 20 / 100;

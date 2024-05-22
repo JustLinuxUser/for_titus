@@ -2,7 +2,7 @@ use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 use ego_tree::{tree, NodeId};
 use ratatui::{
     layout::Rect,
-    style::{Style, Stylize},
+    style::{Color, Style, Stylize},
     text::Line,
     widgets::{Block, Borders, List, ListState},
     Frame,
@@ -88,7 +88,7 @@ impl CustomList {
         // If we are not at the root of our filesystem tree, we need to add `..` path, to be able
         // to go up the tree
         if !self.at_root() {
-            items.push(Line::from("  ..").blue());
+            items.push(Line::from("   ..").blue());
         }
 
         // Iterate through all the children
@@ -96,16 +96,18 @@ impl CustomList {
             // The difference between a "directory" and a "command" is simple: if it has children,
             // it's a directory and will be handled as such
             if node.has_children() {
-                items.push(Line::from(format!("  {}", node.value().name)).blue());
+                items.push(Line::from(format!("   {}", node.value().name)).blue());
             } else {
-                items.push(Line::from(format!("  {}", node.value().name)).red());
+                items.push(
+                    Line::from(format!("   {}", node.value().name))
+                        .style(Color::Rgb(204, 224, 208)),
+                );
             }
         }
 
         // create the normal list widget containing only item in our "working directory" / tree
         // node
         let list = List::new(items)
-            .highlight_symbol(">>> ")
             .highlight_style(Style::default().reversed())
             .block(Block::default().borders(Borders::ALL).title("List"));
 
