@@ -1,12 +1,14 @@
 mod float;
 mod list;
 mod running_command;
+mod theme;
 
 use std::{
     io::{self, stdout},
     time::Duration,
 };
 
+use clap::Parser;
 use crossterm::{
     cursor::RestorePosition,
     event::{self, DisableMouseCapture, Event, KeyCode, KeyEventKind, KeyModifiers},
@@ -20,8 +22,22 @@ use ratatui::{
     Terminal,
 };
 use running_command::RunningCommand;
+use theme::set_theme;
+
+/// This is a binary :), Chris, change this to update the documentation on -h
+#[derive(Debug, Parser)]
+struct Args {
+    /// Enable compatibility mode (disable icons and RGB colors)
+    #[arg(short, long, default_value_t = false)]
+    compat: bool,
+}
 
 fn main() -> std::io::Result<()> {
+    let args = Args::parse();
+    if args.compat {
+        set_theme(0);
+    }
+
     stdout().execute(EnterAlternateScreen)?;
     enable_raw_mode()?;
     let mut terminal = Terminal::new(CrosstermBackend::new(stdout()))?;

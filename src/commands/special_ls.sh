@@ -1,5 +1,5 @@
 # Special ls
-echo Ready??
+echo Ready???
 sleep 1
 echo 4
 sleep 0.2

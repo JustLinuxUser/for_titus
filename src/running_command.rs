@@ -19,7 +19,7 @@ use tui_term::{
     widget::PseudoTerminal,
 };
 
-use crate::float::floating_window;
+use crate::{float::floating_window, theme::get_theme};
 
 // This is a struct for stoaring everything connected to a running command
 // Create a new instance on every new command you want to run
@@ -150,6 +150,8 @@ impl RunningCommand {
 
     pub fn draw(&mut self, frame: &mut Frame) {
         {
+
+            let theme = get_theme();
             // Funny name
             let floater = floating_window(frame.size());
 
@@ -174,7 +176,7 @@ impl RunningCommand {
                     Line::from(
                         Span::default()
                             .content("SUCCESS!")
-                            .style(Style::default().fg(Color::Rgb(5, 255, 55)).reversed()),
+                            .style(Style::default().fg(theme.success_color).reversed()),
                     )
                 } else {
                     Line::from(

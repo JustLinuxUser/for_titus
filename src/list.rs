@@ -1,8 +1,10 @@
+
+use crate::theme::*;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 use ego_tree::{tree, NodeId};
 use ratatui::{
     layout::Rect,
-    style::{Color, Style, Stylize},
+    style::{Style, Stylize},
     text::Line,
     widgets::{Block, Borders, List, ListState},
     Frame,
@@ -64,7 +66,7 @@ impl CustomList {
                     name: "Recursion?",
                     command: "cargo run"
                 },
-            },
+            }
         });
         // We don't get a reference, but rather an id, because references are siginficantly more
         // paintfull to manage
@@ -79,6 +81,7 @@ impl CustomList {
     /// Draw our custom widget to the frame
     pub fn draw(&mut self, frame: &mut Frame, area: Rect) {
         // Get the last element in the `visit_stack` vec
+        let theme = get_theme();
         let curr = self
             .inner_tree
             .get(*self.visit_stack.last().unwrap())
@@ -87,8 +90,9 @@ impl CustomList {
 
         // If we are not at the root of our filesystem tree, we need to add `..` path, to be able
         // to go up the tree
+        // icons:   
         if !self.at_root() {
-            items.push(Line::from("   ..").blue());
+            items.push(Line::from(format!("{}  ..", theme.dir_icon)).style(theme.dir_color));
         }
 
         // Iterate through all the children
@@ -96,11 +100,14 @@ impl CustomList {
             // The difference between a "directory" and a "command" is simple: if it has children,
             // it's a directory and will be handled as such
             if node.has_children() {
-                items.push(Line::from(format!("   {}", node.value().name)).blue());
+                items.push(
+                    Line::from(format!("{}  {}", theme.dir_icon, node.value().name))
+                        .style(theme.dir_color),
+                );
             } else {
                 items.push(
-                    Line::from(format!("   {}", node.value().name))
-                        .style(Color::Rgb(204, 224, 208)),
+                    Line::from(format!("{}  {}", theme.cmd_icon, node.value().name))
+                        .style(theme.cmd_color),
                 );
             }
         }
@@ -109,7 +116,8 @@ impl CustomList {
         // node
         let list = List::new(items)
             .highlight_style(Style::default().reversed())
-            .block(Block::default().borders(Borders::ALL).title("List"));
+            .block(Block::default().borders(Borders::ALL).title("List"))
+            .scroll_padding(1);
 
         // Render it
         frame.render_stateful_widget(list, area, &mut self.list_state);
